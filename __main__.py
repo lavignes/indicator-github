@@ -11,6 +11,7 @@ import requests
 import json
 import appindicator
 import gtk
+import datetime
 
 client_id = '17d74debb1b3ef6337e6'
 redirect = 'http://pyrated.github.io/indicator-github/'
@@ -18,6 +19,8 @@ request_string = 'https://github.com/login/oauth/authorize?client_id=%s&redirect
 scope = ''
 token = ''
 app_folder = os.path.expanduser(os.path.join('~','.indicator-github',''))
+time = datetime.datetime.utcnow() - datetime.timedelta(days=1)
+icon = os.path.join(os.getcwd(),'gh.png')
 
 def find_token(items):
   for d in items:
@@ -48,6 +51,13 @@ def credential_prompt():
   dialog.destroy()
   return auth
 
+def read_events(gh):
+  # Get my own events
+  for event in gh.get_user(gh.get_user().login).get_received_events():
+    if event.created_at > time:
+      note = pynotify.Notification(event.actor.login, event.type, icon)
+      note.show()
+
 if not os.path.exists(app_folder): os.makedirs(app_folder)
 
 # Check if user has authenticated app
@@ -56,6 +66,9 @@ if not os.path.isfile(os.path.join(app_folder,'oauth')):
   webbrowser.open(request_string % (urllib.quote(client_id), urllib.quote(redirect), urllib.quote(scope)))
 
   # Get oauth tokens
+  # Should use pygithub to do this instead
+  # Id just make a github object with the credentials
+  # and fetch that way
   session = requests.Session()
   session.auth = credential_prompt()
   request = session.get('https://api.github.com/authorizations')
@@ -79,7 +92,6 @@ else:
 # Log user into github
 gh = Github(login_or_token=token, client_id=client_id, user_agent=client_id)
 
-icon = os.path.join(os.getcwd(),'gh.png')
 indicator = appindicator.Indicator(
   'indicator-github',
   icon,
@@ -119,5 +131,7 @@ indicator.set_menu(menu)
 pynotify.init('indicator-github')
 note = pynotify.Notification('GitHub', 'Logged in', icon)
 note.show()
+
+read_events(gh)
 
 gtk.main()
