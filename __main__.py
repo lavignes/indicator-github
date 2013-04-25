@@ -15,7 +15,8 @@ import gtk
 client_id = '17d74debb1b3ef6337e6'
 redirect = 'http://pyrated.github.io/indicator-github/'
 request_string = 'https://github.com/login/oauth/authorize?client_id=%s&redirect_uri=%s&scope=%s'
-scope = 'user,repo'
+scope = ''
+token = ''
 app_folder = os.path.expanduser(os.path.join('~','.indicator-github',''))
 
 def find_token(items):
