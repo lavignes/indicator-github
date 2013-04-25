@@ -2,6 +2,7 @@
 
 from github import Github
 import os
+import pynotify
 import exceptions
 import getpass
 import webbrowser
@@ -11,6 +12,12 @@ import json
 import appindicator
 import gtk
 
+client_id = '17d74debb1b3ef6337e6'
+redirect = 'http://pyrated.github.io/indicator-github/'
+request_string = 'https://github.com/login/oauth/authorize?client_id=%s&redirect_uri=%s&scope=%s'
+scope = 'user,repo'
+app_folder = os.path.expanduser(os.path.join('~','.indicator-github',''))
+
 def find_token(items):
   for d in items:
     if d['app']['name'] == 'indicator-github':
@@ -18,12 +25,28 @@ def find_token(items):
   else:
     raise KeyError
 
-client_id = '17d74debb1b3ef6337e6'
-redirect = 'http://pyrated.github.io/indicator-github/'
-request_string = 'https://github.com/login/oauth/authorize?client_id=%s&redirect_uri=%s&scope=%s'
-scope = ''
+def credential_prompt():
+  dialog = gtk.MessageDialog(
+    parent=None,
+    flags=0,
+    type=gtk.MESSAGE_QUESTION,
+    buttons=gtk.BUTTONS_OK_CANCEL,
+    message_format="Please enter your GitHub credentials.")
 
-app_folder = os.path.expanduser(os.path.join('~','.indicator-github',''))
+  dialog.set_title("GitHub Login")
+  box = dialog.get_content_area()
+  password = gtk.Entry()
+  password.set_visibility(False)
+  password.set_invisible_char("*")
+  username = gtk.Entry()
+  box.add(username)
+  box.add(password)
+  dialog.show_all()
+  dialog.run()
+  auth = (username.get_text(), password.get_text())
+  dialog.destroy()
+  return auth
+
 if not os.path.exists(app_folder): os.makedirs(app_folder)
 
 # Check if user has authenticated app
@@ -33,7 +56,7 @@ if not os.path.isfile(os.path.join(app_folder,'oauth')):
 
   # Get oauth tokens
   session = requests.Session()
-  session.auth = (raw_input('username:'), getpass.getpass())
+  session.auth = credential_prompt()
   request = session.get('https://api.github.com/authorizations')
   auths = json.loads(request.content)
 
@@ -55,8 +78,10 @@ else:
 # Log user into github
 gh = Github(login_or_token=token, client_id=client_id, user_agent=client_id)
 
-indicator = appindicator.Indicator ('indicator-github',\
-  os.path.join(os.getcwd(),'gh.png'),\
+icon = os.path.join(os.getcwd(),'gh.png')
+indicator = appindicator.Indicator(
+  'indicator-github',
+  icon,
   appindicator.CATEGORY_COMMUNICATIONS)
 
 indicator.set_status(appindicator.STATUS_ACTIVE)
@@ -68,7 +93,7 @@ menu.append(menu_item)
 
 menu.append(gtk.SeparatorMenuItem())
 
-repo_item = gtk.MenuItem("Repositories")
+repo_item = gtk.MenuItem("Your Repositories")
 repo_menu = gtk.Menu()
 repo_item.set_submenu(repo_menu)
 
@@ -89,4 +114,9 @@ menu.append(menu_item)
 
 menu.show_all()
 indicator.set_menu(menu)
+
+pynotify.init('indicator-github')
+note = pynotify.Notification('GitHub', 'Logged in', icon)
+note.show()
+
 gtk.main()
