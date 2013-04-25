@@ -11,6 +11,7 @@ import requests
 import json
 import appindicator
 import gtk
+import gobject
 import datetime
 
 client_id = '17d74debb1b3ef6337e6'
@@ -19,7 +20,7 @@ request_string = 'https://github.com/login/oauth/authorize?client_id=%s&redirect
 scope = ''
 token = ''
 app_folder = os.path.expanduser(os.path.join('~','.indicator-github',''))
-time = datetime.datetime.utcnow() - datetime.timedelta(days=1)
+feed_time = datetime.datetime.utcnow()# - datetime.timedelta(days=1)
 icon = os.path.join(os.getcwd(),'gh.png')
 
 def find_token(items):
@@ -53,10 +54,12 @@ def credential_prompt():
 
 def read_events(gh):
   # Get my own events
+  global feed_time
   for event in gh.get_user(gh.get_user().login).get_received_events():
-    if event.created_at > time:
+    if event.created_at > feed_time:
       note = pynotify.Notification(event.actor.login, event.type, icon)
       note.show()
+  feed_time = datetime.datetime.utcnow()
 
 if not os.path.exists(app_folder): os.makedirs(app_folder)
 
@@ -132,6 +135,7 @@ pynotify.init('indicator-github')
 note = pynotify.Notification('GitHub', 'Logged in', icon)
 note.show()
 
-read_events(gh)
+# Check for updates every 5 minutes
+gobject.timeout_add_seconds(5*60, read_events, gh)
 
 gtk.main()
