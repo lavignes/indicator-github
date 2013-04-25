@@ -4,11 +4,8 @@ from github import Github
 import os
 import pynotify
 import exceptions
-import getpass
 import webbrowser
 import urllib
-import requests
-import json
 import appindicator
 import gtk
 import gobject
@@ -20,15 +17,18 @@ request_string = 'https://github.com/login/oauth/authorize?client_id=%s&redirect
 scope = ''
 token = ''
 app_folder = os.path.expanduser(os.path.join('~','.indicator-github',''))
-feed_time = datetime.datetime.utcnow()# - datetime.timedelta(days=1)
+feed_time = datetime.datetime.utcnow() - datetime.timedelta(days=1)
 icon = os.path.join(os.getcwd(),'gh.png')
 
-def find_token(items):
-  for d in items:
-    if d['app']['name'] == 'indicator-github':
-      return d['token']
-  else:
-    raise KeyError
+def about(menu_item):
+  dialog = gtk.AboutDialog()
+  dialog.set_name('Indicator Github')
+  dialog.set_version('alpha')
+  dialog.set_comments('An indicator applet for GitHub')
+  dialog.set_authors(['Scott LaVigne'])
+  dialog.show_all()
+  dialog.run()
+  dialog.destroy()
 
 def credential_prompt():
   dialog = gtk.MessageDialog(
@@ -57,8 +57,12 @@ def read_events(gh):
   global feed_time
   for event in gh.get_user(gh.get_user().login).get_received_events():
     if event.created_at > feed_time:
-      note = pynotify.Notification(event.actor.login, event.type, icon)
-      note.show()
+      pynotify.Notification(event.actor.login, event.type, icon).show()
+    else:
+      # If I reached an event that isn't new, then I know
+      # there are no new event past it
+      break
+
   feed_time = datetime.datetime.utcnow()
 
 if not os.path.exists(app_folder): os.makedirs(app_folder)
@@ -68,20 +72,14 @@ if not os.path.isfile(os.path.join(app_folder,'oauth')):
   # Authorize indicator-github
   webbrowser.open(request_string % (urllib.quote(client_id), urllib.quote(redirect), urllib.quote(scope)))
 
-  # Get oauth tokens
-  # Should use pygithub to do this instead
-  # Id just make a github object with the credentials
-  # and fetch that way
-  session = requests.Session()
-  session.auth = credential_prompt()
-  request = session.get('https://api.github.com/authorizations')
-  auths = json.loads(request.content)
-
-  try:
-    token = find_token(auths)
-  except:
-    # User didn't authorize app
-    print 'Can\'t find token'
+  # Get oauth token
+  gh = Github(*credential_prompt(), client_id=client_id, user_agent=client_id)
+  for auth in gh.get_user().get_authorizations():
+    if auth.app.name == 'indicator-github':
+      token = auth.token
+      break
+  else:
+    raise KeyError
 
   token_file = open(os.path.join(app_folder,'oauth'), 'w+')
   token_file.write(token)
@@ -92,7 +90,6 @@ else:
   token_file = open(os.path.join(app_folder,'oauth'), 'r')
   token = token_file.read()
 
-# Log user into github
 gh = Github(login_or_token=token, client_id=client_id, user_agent=client_id)
 
 indicator = appindicator.Indicator(
@@ -122,6 +119,7 @@ menu.append(repo_item)
 menu.append(gtk.SeparatorMenuItem())
 
 menu_item = gtk.MenuItem("About...")
+menu_item.connect("activate", about)
 menu.append(menu_item)
 
 menu_item = gtk.MenuItem("Quit")
@@ -132,10 +130,9 @@ menu.show_all()
 indicator.set_menu(menu)
 
 pynotify.init('indicator-github')
-note = pynotify.Notification('GitHub', 'Logged in', icon)
-note.show()
+pynotify.Notification('GitHub', 'Logged in', icon).show()
 
-# Check for updates every 5 minutes
-gobject.timeout_add_seconds(5*60, read_events, gh)
+# Check for updates every 2 minutes
+gobject.timeout_add_seconds(2*60, read_events, gh)
 
 gtk.main()
