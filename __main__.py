@@ -17,7 +17,8 @@ scope = 'repo:status,notifications'
 token = ''
 app_folder = os.path.expanduser(os.path.join('~','.indicator-github',''))
 feed_time = datetime.datetime.utcnow() - datetime.timedelta(hours=5)
-icon = os.path.join(os.getcwd(),'gh.png')
+icon = os.path.join(os.path.dirname(os.path.realpath(__file__)),'gh.png')
+print icon
 old_events = []
 
 events = {
@@ -41,7 +42,7 @@ def about(menu_item):
   dialog.set_program_name('Indicator GitHub')
   dialog.set_version('alpha')
   dialog.set_comments('An indicator applet for GitHub')
-  dialog.set_authors(['Scott LaVigne'])  
+  dialog.set_authors(['Scott LaVigne'])
   with open('LICENSE.txt','r') as f:
     dialog.set_license(f.read())
   dialog.show_all()
@@ -85,7 +86,7 @@ def read_events(gh):
             )
         else:
           message = "%s %s" % (events[event.type], event.repo.full_name)
-        Notify.Notification.new(event.actor.login, message, None).show()
+        Notify.Notification.new(event.actor.login, message, icon).show()
       except: pass
     else:
       # If I reached an event that isn't new, then I know
