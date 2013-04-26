@@ -26,6 +26,7 @@ events = {
   'FollowEvent': 'started following',
   'ForkEvent': 'forked',
   'PublicEvent': 'open sourced',
+  'PullRequestEvent': 'pull request',
   'WatchEvent': 'starred'
   }
 
@@ -75,8 +76,17 @@ def read_events(gh):
     if event.created_at > feed_time:
       # A repository could be deleted or something
       try:
-        message = "%s %s" % (events[event.type], event.repo.full_name)
+        if event.type == 'PullRequestEvent':
+          message = "%s %s %s#%i" % (
+            event.payload['action'],
+            events[event.type],
+            event.repo.full_name,
+            event.payload['number']
+            )
+        else:
+          message = "%s %s" % (events[event.type], event.repo.full_name)
         Notify.Notification.new(event.actor.login, message, None).show()
+        print message
       except: pass
     else:
       # If I reached an event that isn't new, then I know
