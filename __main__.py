@@ -38,10 +38,10 @@ def initialize(gh):
 
 def about(menu_item):
   dialog = Gtk.AboutDialog()
-  dialog.set_name('Indicator Github')
+  dialog.set_program_name('Indicator GitHub')
   dialog.set_version('alpha')
   dialog.set_comments('An indicator applet for GitHub')
-  dialog.set_authors(['Scott LaVigne', 'Oriah Ulrich'])  
+  dialog.set_authors(['Scott LaVigne'])  
   with open('LICENSE.txt','r') as f:
     dialog.set_license(f.read())
   dialog.show_all()
@@ -86,7 +86,6 @@ def read_events(gh):
         else:
           message = "%s %s" % (events[event.type], event.repo.full_name)
         Notify.Notification.new(event.actor.login, message, None).show()
-        print message
       except: pass
     else:
       # If I reached an event that isn't new, then I know
