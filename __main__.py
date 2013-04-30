@@ -38,7 +38,7 @@ def initialize(gh):
   return False
 
 def about(menu_item):
-  dialog = Gtk.AboutDialog()
+  dialog = Gtk.AboutDialog.new()
   dialog.set_program_name('Indicator GitHub')
   dialog.set_version('alpha')
   dialog.set_comments('An indicator applet for GitHub')
@@ -50,18 +50,14 @@ def about(menu_item):
   dialog.destroy()
 
 def credential_prompt():
-  dialog = Gtk.MessageDialog(
-    parent=None,
-    flags=0,
-    type=Gtk.MESSAGE_QUESTION,
-    buttons=Gtk.BUTTONS_OK_CANCEL,
+  dialog = Gtk.MessageDialog(buttons=Gtk.ButtonsType.OK,
     message_format='Please enter your GitHub credentials.')
-
+  
   dialog.set_title('GitHub Login')
   box = dialog.get_content_area()
-  password = Gtk.Entry()
+  password = Gtk.Entry.new()
   password.set_visibility(False)
-  username = Gtk.Entry()
+  username = Gtk.Entry.new()
   box.add(username)
   box.add(password)
   dialog.show_all()
@@ -130,26 +126,26 @@ indicator = AppIndicator.Indicator.new(
 indicator.set_label('GitHub','test')
 indicator.set_status(AppIndicator.IndicatorStatus.ACTIVE)
 
-menu = Gtk.Menu()
-menu_item = Gtk.MenuItem(gh.get_user().name)
+menu = Gtk.Menu.new()
+menu_item = Gtk.MenuItem.new_with_label(gh.get_user().name)
 menu.append(menu_item)
 
-menu.append(Gtk.SeparatorMenuItem())
+menu.append(Gtk.SeparatorMenuItem.new())
 
-repo_item = Gtk.MenuItem("Your Repositories")
-repo_menu = Gtk.Menu()
+repo_item = Gtk.MenuItem.new_with_label("Your Repositories")
+repo_menu = Gtk.Menu.new()
 repo_item.set_submenu(repo_menu)
 for repo in gh.get_user().get_repos():
-  menu_item = Gtk.MenuItem(repo.name)
+  menu_item = Gtk.MenuItem.new_with_label(repo.name)
   repo_menu.append(menu_item)
 menu.append(repo_item)
 
-menu.append(Gtk.SeparatorMenuItem())
+menu.append(Gtk.SeparatorMenuItem.new())
 
-menu_item = Gtk.MenuItem("About...")
+menu_item = Gtk.MenuItem.new_with_label("About...")
 menu_item.connect("activate", about)
 menu.append(menu_item)
-menu_item = Gtk.MenuItem("Quit")
+menu_item = Gtk.MenuItem.new_with_label("Quit")
 menu_item.connect("activate", Gtk.main_quit)
 menu.append(menu_item)
 menu.show_all()
